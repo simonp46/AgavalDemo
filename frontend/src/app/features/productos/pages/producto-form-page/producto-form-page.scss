@@ -1,0 +1,56 @@
+.producto-form-page {
+  display: grid;
+  max-width: 58rem;
+  margin: 0 auto;
+  gap: 1.5rem;
+
+  &__header {
+    display: grid;
+    justify-items: start;
+  }
+
+  &__eyebrow,
+  &__title {
+    margin: 0;
+  }
+
+  &__eyebrow {
+    margin-top: 2rem;
+    color: var(--gi-accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  &__title {
+    margin-top: 0.45rem;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(2.6rem, 7vw, 4.8rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  &__loading {
+    display: grid;
+    gap: 1rem;
+    padding: 2rem;
+    color: var(--gi-muted);
+    text-align: center;
+  }
+}
+
+@media (width <= 30rem) {
+  .producto-form-page {
+    gap: 1rem;
+
+    &__eyebrow {
+      margin-top: 0.5rem;
+    }
+
+    &__title {
+      font-size: 2.5rem;
+    }
+  }
+}

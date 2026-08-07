@@ -1,0 +1,14 @@
+services:
+  backend:
+    build:
+      secrets:
+        - corporate_ca
+
+  frontend:
+    build:
+      secrets:
+        - corporate_ca
+
+secrets:
+  corporate_ca:
+    file: ./.docker/corporate-ca.crt

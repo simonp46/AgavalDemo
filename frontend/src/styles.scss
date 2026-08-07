@@ -1,0 +1,50 @@
+:root {
+  --gi-blue: #157dc3;
+  --gi-white: #fff;
+  --gi-yellow: #ffcd00;
+  --gi-dark: #313132;
+  --gi-ink: #3a3a3a;
+  --gi-muted: #697378;
+  --gi-placeholder: #979899;
+  --gi-paper: #f3f8fb;
+  --gi-surface: #fff;
+  --gi-accent: #157dc3;
+  --gi-highlight: #ffcd00;
+  --gi-border: rgb(21 125 195 / 18%);
+  color: var(--gi-ink);
+  background: var(--gi-paper);
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  font-synthesis: none;
+}
+
+html {
+  min-width: 20rem;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 15% 15%, rgb(21 125 195 / 12%), transparent 28rem),
+    linear-gradient(135deg, rgb(255 205 0 / 8%), transparent 42%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 4.95rem,
+      rgb(21 125 195 / 3%) 5rem
+    ),
+    var(--gi-paper);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}

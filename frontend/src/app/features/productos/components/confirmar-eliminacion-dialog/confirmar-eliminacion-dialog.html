@@ -1,0 +1,16 @@
+<div class="confirmar-eliminacion">
+  <span class="confirmar-eliminacion__eyebrow">Acción irreversible</span>
+  <h2 mat-dialog-title>Eliminar producto</h2>
+  <mat-dialog-content>
+    <p class="confirmar-eliminacion__message">
+      ¿Deseas eliminar <strong>{{ producto.nombre }}</strong>? El registro dejará de
+      estar disponible en el inventario.
+    </p>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button type="button" mat-button [mat-dialog-close]="false">Cancelar</button>
+    <button type="button" mat-flat-button [mat-dialog-close]="true">
+      Eliminar
+    </button>
+  </mat-dialog-actions>
+</div>

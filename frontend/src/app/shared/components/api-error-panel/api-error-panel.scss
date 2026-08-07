@@ -1,0 +1,57 @@
+.api-error {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgb(185 58 38 / 30%);
+  border-radius: 0.5rem;
+  background: #fff3ed;
+
+  &__marker {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    background: #b93a26;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+  }
+
+  &__title,
+  &__detail,
+  &__trace {
+    margin: 0;
+  }
+
+  &__title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.05rem;
+  }
+
+  &__detail {
+    margin-top: 0.2rem;
+    color: var(--gi-muted);
+    line-height: 1.5;
+  }
+
+  &__trace {
+    margin-top: 0.35rem;
+    color: var(--gi-muted);
+    font-family: Consolas, monospace;
+    font-size: 0.72rem;
+  }
+}
+
+@media (width <= 38rem) {
+  .api-error {
+    grid-template-columns: auto 1fr;
+
+    &__action {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+}

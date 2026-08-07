@@ -1,0 +1,131 @@
+<div class="registro-dialog">
+  <header class="registro-dialog__header">
+    <p class="registro-dialog__eyebrow">Nuevo acceso</p>
+    <h2 mat-dialog-title>Crear cuenta</h2>
+    <p class="registro-dialog__intro">
+      Completa tus datos. El sistema sugerirá un usuario disponible.
+    </p>
+  </header>
+
+  <mat-dialog-content>
+    <form class="registro-dialog__form" [formGroup]="registroForm">
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre</mat-label>
+        <input
+          matInput
+          formControlName="nombre"
+          autocomplete="given-name"
+          maxlength="100"
+          (blur)="sugerirUsuario()"
+        />
+        @if (registroForm.controls.nombre.hasError('required')) {
+          <mat-error>El nombre es obligatorio.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Apellidos</mat-label>
+        <input
+          matInput
+          formControlName="apellidos"
+          autocomplete="family-name"
+          maxlength="100"
+          (blur)="sugerirUsuario()"
+        />
+        @if (registroForm.controls.apellidos.hasError('required')) {
+          <mat-error>Los apellidos son obligatorios.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Número de documento</mat-label>
+        <input
+          matInput
+          formControlName="numeroDocumento"
+          autocomplete="off"
+          maxlength="30"
+        />
+        @if (registroForm.controls.numeroDocumento.hasError('required')) {
+          <mat-error>El documento es obligatorio.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Área</mat-label>
+        <input
+          matInput
+          formControlName="area"
+          autocomplete="organization-title"
+          maxlength="100"
+        />
+        @if (registroForm.controls.area.hasError('required')) {
+          <mat-error>El área es obligatoria.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="registro-dialog__wide" appearance="outline">
+        <mat-label>Usuario</mat-label>
+        <input
+          matInput
+          formControlName="usuario"
+          autocomplete="username"
+          maxlength="60"
+        />
+        <mat-hint>Mezcla de nombre y apellido más dos números.</mat-hint>
+        @if (registroForm.controls.usuario.hasError('required')) {
+          <mat-error>El usuario es obligatorio.</mat-error>
+        } @else if (registroForm.controls.usuario.invalid) {
+          <mat-error>Usa de 4 a 60 letras, números, punto o guion.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="registro-dialog__wide" appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <input
+          matInput
+          type="password"
+          formControlName="contrasena"
+          autocomplete="new-password"
+          maxlength="128"
+        />
+        <mat-hint>Mínimo 8 caracteres.</mat-hint>
+        @if (registroForm.controls.contrasena.hasError('required')) {
+          <mat-error>La contraseña es obligatoria.</mat-error>
+        } @else if (registroForm.controls.contrasena.hasError('minlength')) {
+          <mat-error>Debe tener al menos 8 caracteres.</mat-error>
+        }
+      </mat-form-field>
+    </form>
+
+    @if (auth.error(); as problem) {
+      <div class="registro-dialog__error" role="alert">
+        <strong>{{ problem.title }}</strong>
+        <span>{{ problem.detail }}</span>
+      </div>
+    }
+  </mat-dialog-content>
+
+  @if (auth.loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Creando cuenta" />
+  }
+
+  <mat-dialog-actions align="end">
+    <button
+      type="button"
+      mat-button
+      [disabled]="auth.loading()"
+      (click)="cancelar()"
+    >
+      Cancelar
+    </button>
+    <button
+      class="registro-dialog__create"
+      type="button"
+      mat-flat-button
+      [disabled]="auth.loading()"
+      (click)="crear()"
+    >
+      Crear
+    </button>
+  </mat-dialog-actions>
+</div>

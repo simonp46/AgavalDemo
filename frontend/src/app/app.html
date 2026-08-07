@@ -1,0 +1,44 @@
+<div class="app-shell">
+  <header class="app-shell__header">
+    <mat-toolbar class="app-shell__toolbar">
+      <a class="app-shell__brand" href="/" aria-label="Ir al inicio">
+        <img
+          class="app-shell__logo"
+          [src]="logoUrl"
+          width="145"
+          height="27"
+          alt="Agaval"
+        />
+      </a>
+      <span class="app-shell__divider" aria-hidden="true"></span>
+      <h1 class="app-shell__title">{{ title() }}</h1>
+      @if (auth.usuario(); as usuario) {
+        <div class="app-shell__session">
+          <span class="app-shell__user">
+            {{ usuario.nombre }} · {{ usuario.area }}
+          </span>
+          <button type="button" mat-button (click)="cerrarSesion()">
+            Cerrar sesión
+          </button>
+        </div>
+      } @else {
+        <span class="app-shell__environment">Portal de inventario</span>
+      }
+    </mat-toolbar>
+  </header>
+
+  <main class="app-shell__content">
+    <router-outlet />
+  </main>
+
+  <footer class="app-shell__footer">
+    <p>
+      Desarrollado por
+      <a
+        href="https://simonp46.github.io/portfolio/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >Simon Padron</a>
+    </p>
+  </footer>
+</div>

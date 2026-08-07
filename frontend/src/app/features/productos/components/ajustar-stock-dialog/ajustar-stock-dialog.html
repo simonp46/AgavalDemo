@@ -1,0 +1,46 @@
+<form class="ajustar-stock" [formGroup]="form" (ngSubmit)="confirmar()">
+  <span class="ajustar-stock__eyebrow">Movimiento de inventario</span>
+  <h2 mat-dialog-title>Ajustar stock</h2>
+  <mat-dialog-content>
+    <p class="ajustar-stock__product">
+      {{ producto.nombre }}
+      <span>Stock actual: {{ producto.stock }}</span>
+    </p>
+
+    <div class="ajustar-stock__fields">
+      <mat-form-field appearance="outline">
+        <mat-label>Tipo</mat-label>
+        <mat-select formControlName="tipo">
+          <mat-option value="ENTRADA">Entrada</mat-option>
+          <mat-option value="SALIDA">Salida</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Cantidad</mat-label>
+        <input
+          matInput
+          type="number"
+          inputmode="numeric"
+          min="1"
+          step="1"
+          formControlName="cantidad"
+        />
+        @if (form.controls.cantidad.hasError('required')) {
+          <mat-error>La cantidad es obligatoria.</mat-error>
+        } @else if (form.controls.cantidad.hasError('min')) {
+          <mat-error>La cantidad debe ser mayor que cero.</mat-error>
+        } @else if (form.controls.cantidad.hasError('integer')) {
+          <mat-error>La cantidad debe ser un número entero.</mat-error>
+        } @else if (form.controls.cantidad.hasError('int32')) {
+          <mat-error>La cantidad está fuera del rango permitido.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button type="button" mat-button mat-dialog-close>Cancelar</button>
+    <button type="submit" mat-flat-button>Ajustar stock</button>
+  </mat-dialog-actions>
+</form>

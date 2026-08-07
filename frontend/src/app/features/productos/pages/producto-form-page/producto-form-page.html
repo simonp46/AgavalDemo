@@ -1,0 +1,49 @@
+<section class="producto-form-page" aria-labelledby="producto-form-title">
+  <header class="producto-form-page__header">
+    <button type="button" mat-button (click)="cancelar()">Volver al listado</button>
+    <p class="producto-form-page__eyebrow">
+      @if (esEdicion) {
+        Edición
+      } @else {
+        Nuevo registro
+      }
+    </p>
+    <h2 class="producto-form-page__title" id="producto-form-title">
+      @if (esEdicion) {
+        Editar producto
+      } @else {
+        Crear producto
+      }
+    </h2>
+  </header>
+
+  @if (!inicializado() && store.loading()) {
+    <div class="producto-form-page__loading" aria-live="polite">
+      <mat-progress-bar mode="indeterminate" />
+      <span>Preparando el formulario...</span>
+    </div>
+  } @else if (!inicializado() && store.error(); as problem) {
+    <app-api-error-panel
+      [problem]="problem"
+      (reintentar)="reintentar()"
+    />
+  }
+
+  @if (inicializado()) {
+    @if (errorGeneral(); as problem) {
+      <app-api-error-panel
+        [problem]="problem"
+        [mostrarReintentar]="false"
+      />
+    }
+
+    <app-producto-form
+      [producto]="store.productoSeleccionado()"
+      [categorias]="store.categorias()"
+      [guardando]="store.guardando()"
+      [erroresServidor]="store.error()?.errors"
+      (guardar)="guardar($event)"
+      (cancelar)="cancelar()"
+    />
+  }
+</section>

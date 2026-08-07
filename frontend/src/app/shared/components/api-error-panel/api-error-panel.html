@@ -1,0 +1,20 @@
+<section class="api-error" role="alert" aria-live="polite">
+  <span class="api-error__marker" aria-hidden="true">!</span>
+  <div class="api-error__content">
+    <h3 class="api-error__title">{{ problem().title }}</h3>
+    <p class="api-error__detail">{{ problem().detail }}</p>
+    @if (problem().traceId) {
+      <p class="api-error__trace">Referencia: {{ problem().traceId }}</p>
+    }
+  </div>
+  @if (mostrarReintentar()) {
+    <button
+      class="api-error__action"
+      type="button"
+      mat-stroked-button
+      (click)="reintentar.emit()"
+    >
+      Reintentar
+    </button>
+  }
+</section>

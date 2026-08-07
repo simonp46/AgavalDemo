@@ -1,0 +1,89 @@
+name: gestor-inventario
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in a local .env file}
+    ports:
+      - "${SQLSERVER_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./database/scripts:/docker-entrypoint-initdb.d:ro
+      - ./database/docker-entrypoint.sh:/usr/local/bin/gestor-entrypoint.sh:ro
+    entrypoint:
+      - /bin/bash
+      - /usr/local/bin/gestor-entrypoint.sh
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          SQLCMD=/opt/mssql-tools18/bin/sqlcmd;
+          if [ ! -x "$$SQLCMD" ]; then SQLCMD=/opt/mssql-tools/bin/sqlcmd; fi;
+          "$$SQLCMD" -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -b
+          -Q "IF DB_ID(N'GestorInventarioDB') IS NULL OR
+          OBJECT_ID(N'GestorInventarioDB.dbo.Productos', N'U') IS NULL
+          THROW 50000, 'Database is not ready.', 1; SELECT 1;" > /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - inventory-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__GestorInventarioDb: >-
+        Server=sqlserver,1433;Database=GestorInventarioDB;User Id=sa;
+        Password='${MSSQL_SA_PASSWORD}';Encrypt=True;TrustServerCertificate=True;
+      Cors__AllowedOrigins__0: "http://localhost:${FRONTEND_PORT:-4200}"
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl --fail --silent --show-error http://localhost:8080/health > /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - inventory-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget --quiet --output-document=- http://127.0.0.1/health > /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - inventory-network
+
+volumes:
+  sqlserver-data:
+
+networks:
+  inventory-network:
+    driver: bridge

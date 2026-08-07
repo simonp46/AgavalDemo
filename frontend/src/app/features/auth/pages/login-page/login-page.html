@@ -1,0 +1,89 @@
+<section class="login-page" aria-labelledby="login-title">
+  <div class="login-page__story">
+    <p class="login-page__eyebrow">Inventario Agaval</p>
+    <h2 class="login-page__headline">
+      Portal interno para el Control de inventario.
+    </h2>
+    <p class="login-page__copy">
+      Consulta productos, controla mínimos y registra movimientos desde un
+      espacio protegido para tu equipo.
+    </p>
+  </div>
+
+  <mat-card class="login-page__card" appearance="outlined">
+    <mat-card-content>
+      <p class="login-page__card-label">Portal interno</p>
+      <h2 class="login-page__title" id="login-title">Bienvenido</h2>
+      <p class="login-page__subtitle">
+        Usa tus credenciales para acceder al módulo de productos.
+      </p>
+
+      <form
+        class="login-page__form"
+        [formGroup]="loginForm"
+        (ngSubmit)="ingresar()"
+      >
+        <mat-form-field appearance="outline">
+          <mat-label>Usuario</mat-label>
+          <input
+            matInput
+            formControlName="usuario"
+            autocomplete="username"
+            maxlength="60"
+          />
+          @if (loginForm.controls.usuario.hasError('required')) {
+            <mat-error>El usuario es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Contraseña</mat-label>
+          <input
+            matInput
+            type="password"
+            formControlName="contrasena"
+            autocomplete="current-password"
+            maxlength="128"
+          />
+          @if (loginForm.controls.contrasena.hasError('required')) {
+            <mat-error>La contraseña es obligatoria.</mat-error>
+          }
+        </mat-form-field>
+
+        @if (auth.error(); as problem) {
+          <div class="login-page__error" role="alert">
+            <strong>{{ problem.title }}</strong>
+            <span>{{ problem.detail }}</span>
+          </div>
+        }
+
+        <button
+          class="login-page__primary"
+          type="submit"
+          mat-flat-button
+          [disabled]="auth.loading()"
+        >
+          Acceder
+        </button>
+
+        <button
+          class="login-page__secondary"
+          type="button"
+          mat-stroked-button
+          [disabled]="auth.loading()"
+          (click)="abrirRegistro()"
+        >
+          Registrarse
+        </button>
+      </form>
+
+      @if (auth.loading()) {
+        <mat-progress-bar
+          class="login-page__progress"
+          mode="indeterminate"
+          aria-label="Validando acceso"
+        />
+      }
+    </mat-card-content>
+  </mat-card>
+</section>

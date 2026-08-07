@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GestorInventario.Application\GestorInventario.Application.csproj" />
+    <!-- Infrastructure is referenced only by Program.cs as the composition root. -->
+    <ProjectReference Include="..\GestorInventario.Infrastructure\GestorInventario.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+</Project>

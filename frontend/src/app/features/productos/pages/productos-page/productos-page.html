@@ -1,0 +1,119 @@
+<section class="productos-page" aria-labelledby="productos-title">
+  <header class="productos-page__header">
+    <div>
+      <p class="productos-page__eyebrow">Control operativo</p>
+      <h2 class="productos-page__title" id="productos-title">Productos</h2>
+      <p class="productos-page__subtitle">
+        Existencias, precios y umbrales en una sola vista.
+      </p>
+    </div>
+    <button type="button" mat-flat-button (click)="crearProducto()">
+      Nuevo producto
+    </button>
+  </header>
+
+  <div class="productos-page__metrics" aria-label="Resumen del listado">
+    <article class="productos-page__metric">
+      <span class="productos-page__metric-value">{{ store.totalProductos() }}</span>
+      <span class="productos-page__metric-label">Productos visibles</span>
+    </article>
+    <article class="productos-page__metric productos-page__metric--warning">
+      <span class="productos-page__metric-value">{{ store.totalStockBajo() }}</span>
+      <span class="productos-page__metric-label">Con stock bajo</span>
+    </article>
+    <article class="productos-page__metric">
+      <span class="productos-page__metric-value">{{ store.totalUnidades() }}</span>
+      <span class="productos-page__metric-label">Unidades disponibles</span>
+    </article>
+  </div>
+
+  <mat-card class="productos-page__filters" appearance="outlined">
+    <mat-card-content>
+      <form class="productos-page__filter-form" [formGroup]="filtrosForm">
+        <mat-form-field appearance="outline">
+          <mat-label>Categoría</mat-label>
+          <mat-select
+            formControlName="categoriaId"
+            (selectionChange)="aplicarFiltros()"
+          >
+            <mat-option [value]="null">Todas</mat-option>
+            @for (categoria of store.categorias(); track categoria.id) {
+              <mat-option [value]="categoria.id">
+                {{ categoria.nombre }}
+                @if (!categoria.activo) {
+                  (inactiva)
+                }
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Estado</mat-label>
+          <mat-select
+            formControlName="estadoStock"
+            (selectionChange)="aplicarFiltros()"
+          >
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option value="bajo">Stock bajo</mat-option>
+            <mat-option value="normal">Stock normal</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button
+          type="button"
+          mat-button
+          [disabled]="!store.hayFiltrosActivos()"
+          (click)="limpiarFiltros()"
+        >
+          Limpiar filtros
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  @if (store.loading()) {
+    <mat-progress-bar
+      class="productos-page__progress"
+      mode="indeterminate"
+      aria-label="Cargando productos"
+    />
+  }
+
+  @if (store.error(); as problem) {
+    <app-api-error-panel
+      [problem]="problem"
+      (reintentar)="reintentar()"
+    />
+  }
+
+  @if (store.loading() && store.totalProductos() === 0) {
+    <div class="productos-page__loading-state" aria-live="polite">
+      Consultando el inventario...
+    </div>
+  } @else if (store.sinResultados() && !store.error()) {
+    <section class="productos-page__empty" aria-live="polite">
+      <span class="productos-page__empty-mark" aria-hidden="true">0</span>
+      <h3>No hay productos para mostrar</h3>
+      @if (store.hayFiltrosActivos()) {
+        <p>Prueba otra combinación o limpia los filtros actuales.</p>
+        <button type="button" mat-stroked-button (click)="limpiarFiltros()">
+          Ver todo el inventario
+        </button>
+      } @else {
+        <p>Crea el primer producto para comenzar a gestionar existencias.</p>
+        <button type="button" mat-stroked-button (click)="crearProducto()">
+          Crear producto
+        </button>
+      }
+    </section>
+  } @else if (store.totalProductos() > 0) {
+    <app-productos-table
+      [productos]="store.productos()"
+      [deshabilitada]="store.guardando()"
+      (editar)="editarProducto($event)"
+      (eliminar)="confirmarEliminacion($event)"
+      (ajustar)="abrirAjusteStock($event)"
+    />
+  }
+</section>

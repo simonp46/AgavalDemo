@@ -1,0 +1,149 @@
+<form class="producto-form" [formGroup]="form" (ngSubmit)="enviar()">
+  <div class="producto-form__grid">
+    <mat-form-field class="producto-form__field--wide" appearance="outline">
+      <mat-label>Nombre</mat-label>
+      <input
+        matInput
+        type="text"
+        maxlength="150"
+        autocomplete="off"
+        formControlName="nombre"
+      />
+      <mat-hint align="end">{{ form.controls.nombre.value.length }}/150</mat-hint>
+      @if (
+        form.controls.nombre.hasError('required') ||
+        form.controls.nombre.hasError('nonBlank')
+      ) {
+        <mat-error>El nombre es obligatorio.</mat-error>
+      } @else if (form.controls.nombre.hasError('maxlength')) {
+        <mat-error>El nombre admite máximo 150 caracteres.</mat-error>
+      } @else if (form.controls.nombre.hasError('servidor')) {
+        <mat-error>{{ form.controls.nombre.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="producto-form__field--wide" appearance="outline">
+      <mat-label>Descripción</mat-label>
+      <textarea
+        matInput
+        rows="3"
+        maxlength="500"
+        formControlName="descripcion"
+      ></textarea>
+      <mat-hint align="end">
+        {{ form.controls.descripcion.value?.length ?? 0 }}/500
+      </mat-hint>
+      @if (form.controls.descripcion.hasError('maxlength')) {
+        <mat-error>La descripción admite máximo 500 caracteres.</mat-error>
+      } @else if (form.controls.descripcion.hasError('servidor')) {
+        <mat-error>{{ form.controls.descripcion.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Precio</mat-label>
+      <span matTextPrefix>$&nbsp;</span>
+      <input
+        matInput
+        type="number"
+        min="0.01"
+        max="99999999.99"
+        step="0.01"
+        inputmode="decimal"
+        formControlName="precio"
+      />
+      @if (form.controls.precio.hasError('required')) {
+        <mat-error>El precio es obligatorio.</mat-error>
+      } @else if (form.controls.precio.hasError('min')) {
+        <mat-error>El precio debe ser mayor que cero.</mat-error>
+      } @else if (form.controls.precio.hasError('max')) {
+        <mat-error>El precio supera el máximo permitido.</mat-error>
+      } @else if (form.controls.precio.hasError('decimalPlaces')) {
+        <mat-error>Usa máximo dos decimales.</mat-error>
+      } @else if (form.controls.precio.hasError('servidor')) {
+        <mat-error>{{ form.controls.precio.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Categoría</mat-label>
+      <mat-select formControlName="categoriaId">
+        @for (categoria of categorias(); track categoria.id) {
+          <mat-option [value]="categoria.id">
+            {{ categoria.nombre }}
+            @if (!categoria.activo) {
+              (inactiva)
+            }
+          </mat-option>
+        }
+      </mat-select>
+      @if (form.controls.categoriaId.hasError('required')) {
+        <mat-error>Selecciona una categoría.</mat-error>
+      } @else if (form.controls.categoriaId.hasError('servidor')) {
+        <mat-error>{{ form.controls.categoriaId.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Stock</mat-label>
+      <input
+        matInput
+        type="number"
+        min="0"
+        step="1"
+        inputmode="numeric"
+        formControlName="stock"
+      />
+      @if (form.controls.stock.hasError('required')) {
+        <mat-error>El stock es obligatorio.</mat-error>
+      } @else if (form.controls.stock.hasError('min')) {
+        <mat-error>El stock no puede ser negativo.</mat-error>
+      } @else if (form.controls.stock.hasError('integer')) {
+        <mat-error>El stock debe ser un número entero.</mat-error>
+      } @else if (form.controls.stock.hasError('int32')) {
+        <mat-error>El stock está fuera del rango permitido.</mat-error>
+      } @else if (form.controls.stock.hasError('servidor')) {
+        <mat-error>{{ form.controls.stock.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Stock mínimo</mat-label>
+      <input
+        matInput
+        type="number"
+        step="1"
+        inputmode="numeric"
+        formControlName="stockMinimo"
+      />
+      <mat-hint>Umbral informado por el inventario.</mat-hint>
+      @if (form.controls.stockMinimo.hasError('required')) {
+        <mat-error>El stock mínimo es obligatorio.</mat-error>
+      } @else if (form.controls.stockMinimo.hasError('integer')) {
+        <mat-error>El stock mínimo debe ser un número entero.</mat-error>
+      } @else if (form.controls.stockMinimo.hasError('int32')) {
+        <mat-error>El stock mínimo está fuera del rango permitido.</mat-error>
+      } @else if (form.controls.stockMinimo.hasError('servidor')) {
+        <mat-error>{{ form.controls.stockMinimo.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+  </div>
+
+  <div class="producto-form__actions">
+    <button
+      type="button"
+      mat-button
+      [disabled]="guardando()"
+      (click)="cancelar.emit()"
+    >
+      Cancelar
+    </button>
+    <button type="submit" mat-flat-button [disabled]="guardando()">
+      @if (guardando()) {
+        Guardando...
+      } @else {
+        {{ tituloAccion() }}
+      }
+    </button>
+  </div>
+</form>
