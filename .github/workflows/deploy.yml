@@ -24,6 +24,8 @@ env:
   AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'eastus2' }}
   AZURE_CONTAINERAPPS_ENVIRONMENT: ${{ vars.AZURE_CONTAINERAPPS_ENVIRONMENT || 'gestor-inventario-env' }}
   AZURE_CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP || 'gestor-inventario-api' }}
+  AZURE_SQL_SERVER: ${{ vars.AZURE_SQL_SERVER || 'simonpadrontech' }}
+  AZURE_SQL_DATABASE: ${{ vars.AZURE_SQL_DATABASE || 'GestorInventarioDB' }}
   BACKEND_IMAGE: ghcr.io/simonp46/agavaldemo-backend
 
 jobs:
@@ -62,6 +64,47 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Resume Azure SQL and wait until online
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          database_id=$(az sql db show \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --server "$AZURE_SQL_SERVER" \
+            --name "$AZURE_SQL_DATABASE" \
+            --query id \
+            --output tsv)
+          resume_requested=false
+
+          for attempt in $(seq 1 40); do
+            status=$(az sql db show \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --server "$AZURE_SQL_SERVER" \
+              --name "$AZURE_SQL_DATABASE" \
+              --query status \
+              --output tsv)
+            echo "Azure SQL status: $status (attempt $attempt/40)"
+
+            if [[ "$status" == "Online" ]]; then
+              sleep 30
+              exit 0
+            fi
+
+            if [[ "$status" == "Paused" && "$resume_requested" == "false" ]]; then
+              az rest \
+                --method post \
+                --url "https://management.azure.com${database_id}/resume?api-version=2023-08-01" \
+                --output none
+              resume_requested=true
+            fi
+
+            sleep 15
+          done
+
+          echo "Azure SQL did not become Online within 10 minutes." >&2
+          exit 1
 
       - name: Apply schema, seed and stored procedures
         uses: azure/sql-action@v2.3
