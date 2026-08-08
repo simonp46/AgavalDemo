@@ -160,9 +160,6 @@ jobs:
       - name: Ensure Container Apps environment
         shell: bash
         run: |
-          az provider register --namespace Microsoft.App --wait
-          az provider register --namespace Microsoft.OperationalInsights --wait
-
           if ! az group show --name "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
             az group create --name "$AZURE_RESOURCE_GROUP" --location "$AZURE_LOCATION"
           fi
