@@ -1,0 +1,46 @@
+name: Open Release PR
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: release-pr
+  cancel-in-progress: false
+
+jobs:
+  open-release-pr:
+    name: Open develop to main PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create PR when none is open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          existing_pr=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head develop \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [[ -n "$existing_pr" ]]; then
+            echo "PR #$existing_pr already promotes develop to main."
+            exit 0
+          fi
+
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head develop \
+            --title "release: promote develop to main" \
+            --body $'## Release\n\nAutomated promotion PR from `develop` to `main`.\n\n- CI must pass before merge.\n- Approval from the code owner is required.\n- Merging starts the production deployment.'
