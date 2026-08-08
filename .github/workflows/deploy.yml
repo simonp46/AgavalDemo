@@ -255,6 +255,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE || 'fenix-dfa9' }}
+      VERCEL_PRODUCTION_URL: ${{ vars.VERCEL_PRODUCTION_URL || 'https://agaval-demo.vercel.app' }}
       BACKEND_ORIGIN: ${{ needs.backend.outputs.origin }}
 
     steps:
@@ -270,14 +271,15 @@ jobs:
         id: deploy
         shell: bash
         run: |
-          URL=$(vercel deploy \
+          DEPLOYMENT_URL=$(vercel deploy \
             --prod \
             --yes \
             --cwd=frontend \
             --token="$VERCEL_TOKEN" \
             --scope="$VERCEL_SCOPE" \
             --env BACKEND_ORIGIN="$BACKEND_ORIGIN")
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Deployment created: $DEPLOYMENT_URL"
+          echo "url=${VERCEL_PRODUCTION_URL%/}" >> "$GITHUB_OUTPUT"
 
       - name: Verify public health endpoint
         shell: bash
