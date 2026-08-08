@@ -21,4 +21,3 @@ BEGIN
     PRINT N'La tabla dbo.DataProtectionKeys ya existe.';
 END;
 GO
-
