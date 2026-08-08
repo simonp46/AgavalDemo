@@ -28,7 +28,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<ProblemDetailsContentTypeOperationFilter>());
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(
+    builder.Configuration,
+    persistDataProtectionKeys: builder.Environment.IsProduction());
 
 var app = builder.Build();
 

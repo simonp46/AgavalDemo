@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1.7
+
+FROM node:22-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN --mount=type=secret,id=corporate_ca,required=false \
+    if [ -s /run/secrets/corporate_ca ]; then \
+        NODE_EXTRA_CA_CERTS=/run/secrets/corporate_ca npm ci; \
+    else \
+        npm ci; \
+    fi
+
+COPY . ./
+RUN npm run build
+
+FROM nginx:1.29-alpine AS runtime
+
+ENV PORT=80 \
+    BACKEND_ORIGIN=http://127.0.0.1:8080 \
+    NGINX_ENVSUBST_FILTER="^(PORT|BACKEND_ORIGIN)$"
+
+COPY nginx.vercel.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /app/dist/gestor-inventario/browser/ /usr/share/nginx/html/
+
+EXPOSE 80
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=12 \
+    CMD wget --quiet --output-document=- "http://127.0.0.1:${PORT:-80}/health" > /dev/null || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

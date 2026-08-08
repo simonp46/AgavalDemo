@@ -4,11 +4,12 @@ using GestorInventario.Application.Exceptions;
 using GestorInventario.Domain.Categorias;
 using GestorInventario.Domain.Productos;
 using GestorInventario.Domain.Usuarios;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace GestorInventario.Infrastructure.Persistence;
 
-public sealed class PersistenceContext : DbContext, IUnitOfWork
+public sealed class PersistenceContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 {
     public PersistenceContext(DbContextOptions<PersistenceContext> options)
         : base(options)
@@ -24,6 +25,8 @@ public sealed class PersistenceContext : DbContext, IUnitOfWork
     public DbSet<Modulo> Modulos => Set<Modulo>();
 
     public DbSet<UsuarioModulo> UsuarioModulos => Set<UsuarioModulo>();
+
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     public override async Task<int> SaveChangesAsync(
         CancellationToken cancellationToken = default)

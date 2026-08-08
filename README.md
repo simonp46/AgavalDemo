@@ -483,9 +483,104 @@ El flujo mantiene dos jobs secuenciales:
 la segunda etapa. El workflow usa únicamente una contraseña efímera de CI para
 validar la interpolación de Compose.
 
-Release y Deploy no forman parte de este workflow. Deben implementarse en un
-flujo separado con aprobaciones, artefactos versionados y secretos del entorno.
-No existe despliegue cloud automático.
+Release y Deploy permanecen separados del CI. El workflow
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) solo se activa
+después de que `CI` finaliza correctamente sobre `main`, o mediante una
+ejecución manual explícita desde `main`.
+
+## Despliegue gratuito automatizado
+
+La entrega cloud mantiene el stack SQL Server y distribuye los contenedores de
+esta forma:
+
+1. **Vercel Hobby:** ejecuta `frontend/Dockerfile.vercel`, sirve Angular con
+   Nginx y reenvía `/api` al Backend sin exponer otra URL al navegador.
+2. **Azure Container Apps Consumption:** ejecuta la imagen .NET publicada en
+   `ghcr.io/simonp46/agavaldemo-backend` y escala a cero sin tráfico.
+3. **Azure SQL Database Free:** conserva tablas, constraints, seed,
+   procedimientos almacenados y claves de protección de las cookies.
+
+Vercel no se conecta directamente a Azure SQL. Esta separación evita abrir la
+base a las IP dinámicas de Vercel Hobby y mantiene las credenciales únicamente
+en Azure Container Apps y GitHub Environments.
+
+### Alta única en Azure
+
+1. Crear una suscripción de Azure y una **Azure SQL Database Free** desde
+   `Azure SQL hub > Start free`.
+2. Usar exactamente `GestorInventarioDB` como nombre de base y seleccionar la
+   opción que pausa la base al agotar la cuota gratuita.
+3. En el servidor lógico, habilitar acceso de red pública para redes
+   seleccionadas y `Allow Azure services and resources to access this server`.
+4. Crear el grupo y las credenciales de automatización desde Azure Cloud Shell:
+
+```bash
+SUBSCRIPTION_ID=$(az account show --query id --output tsv)
+az group create --name gestor-inventario-rg --location eastus2
+az ad sp create-for-rbac \
+  --name agavaldemo-github \
+  --role Contributor \
+  --scopes "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/gestor-inventario-rg" \
+  --sdk-auth
+```
+
+La salida JSON completa del último comando se guarda como
+`AZURE_CREDENTIALS`. La cadena de Azure SQL debe apuntar a
+`Initial Catalog=GestorInventarioDB`, usar `Encrypt=True` y
+`TrustServerCertificate=False`.
+
+### Alta única en Vercel
+
+Crear un proyecto Hobby vacío y vincular la carpeta `frontend`:
+
+```powershell
+npm.cmd install --global vercel
+vercel.cmd login
+vercel.cmd link --cwd frontend
+```
+
+Crear un token en Vercel y tomar `orgId` y `projectId` de
+`frontend/.vercel/project.json`. La carpeta `.vercel` es configuración local y
+no debe confirmarse en Git.
+
+### Secretos de GitHub
+
+Crear un PAT clásico de GitHub con permiso `read:packages` para que Azure pueda
+descargar la imagen privada de GHCR. Después registrar estos secretos en el
+environment `production` del repositorio:
+
+```powershell
+gh secret set AZURE_CREDENTIALS --env production
+gh secret set AZURE_SQL_CONNECTION_STRING --env production
+gh secret set GHCR_PULL_TOKEN --env production
+gh secret set VERCEL_TOKEN --env production
+gh secret set VERCEL_ORG_ID --env production
+gh secret set VERCEL_PROJECT_ID --env production
+```
+
+Cada comando solicita el valor de forma interactiva y evita dejarlo en el
+historial de la terminal. Los nombres predeterminados pueden sobrescribirse con
+variables del repositorio:
+
+```powershell
+gh variable set AZURE_RESOURCE_GROUP --body gestor-inventario-rg
+gh variable set AZURE_LOCATION --body eastus2
+gh variable set AZURE_CONTAINERAPPS_ENVIRONMENT --body gestor-inventario-env
+gh variable set AZURE_CONTAINER_APP --body gestor-inventario-api
+```
+
+### Publicar
+
+El despliegue normal se inicia al aprobar y fusionar un Pull Request hacia
+`main`. Para relanzarlo sin crear un commit:
+
+```powershell
+gh workflow run deploy.yml --ref main
+```
+
+El pipeline aplica scripts SQL idempotentes, publica una imagen Backend
+versionada por SHA, crea o actualiza Container Apps, despliega el contenedor
+Frontend en Vercel y valida `/health` y `/api/auth/sesion`.
 
 ## 14. Decisiones arquitectónicas
 
@@ -538,7 +633,15 @@ No existe despliegue cloud automático.
   CLI, sin hallazgos altos o críticos.
 - SQL Server 2022 para Linux publica imagen `amd64`; equipos ARM requieren
   emulación compatible.
-- No se incluyen manifiestos Kubernetes ni pipeline Release/Deploy.
+- Vercel Hobby se limita a proyectos personales no comerciales y a sus cuotas
+  mensuales.
+- Container Apps y Azure SQL pueden presentar arranque en frío después de
+  escalar o pausarse por inactividad.
+- `Allow Azure services and resources` permite alcanzar el firewall desde
+  recursos Azure externos; la autenticación SQL y los permisos siguen siendo
+  obligatorios y deben usar credenciales fuertes.
+- No se incluyen manifiestos Kubernetes; la entrega usa servicios serverless
+  administrados y un pipeline Release/Deploy separado de CI.
 
 ## Documentación incluida
 
