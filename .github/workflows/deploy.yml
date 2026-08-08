@@ -254,6 +254,7 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE || 'fenix-dfa9' }}
       BACKEND_ORIGIN: ${{ needs.backend.outputs.origin }}
 
     steps:
@@ -265,9 +266,6 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Pull Vercel project configuration
-        run: vercel pull --yes --environment=production --cwd=frontend --token="$VERCEL_TOKEN"
-
       - name: Deploy Frontend to Vercel
         id: deploy
         shell: bash
@@ -277,6 +275,7 @@ jobs:
             --yes \
             --cwd=frontend \
             --token="$VERCEL_TOKEN" \
+            --scope="$VERCEL_SCOPE" \
             --env BACKEND_ORIGIN="$BACKEND_ORIGIN")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
