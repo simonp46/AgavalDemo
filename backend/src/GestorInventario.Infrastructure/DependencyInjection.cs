@@ -3,6 +3,7 @@ using GestorInventario.Application.Interfaces;
 using GestorInventario.Infrastructure.Persistence;
 using GestorInventario.Infrastructure.Persistence.Repositories;
 using GestorInventario.Infrastructure.Security;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,8 @@ public static class DependencyInjection
 
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        bool persistDataProtectionKeys)
     {
         var connectionString = configuration.GetConnectionString(ConnectionStringName);
 
@@ -29,6 +31,13 @@ public static class DependencyInjection
             options.UseSqlServer(
                 connectionString,
                 sqlServer => sqlServer.EnableRetryOnFailure()));
+
+        if (persistDataProtectionKeys)
+        {
+            services.AddDataProtection()
+                .SetApplicationName("GestorInventario")
+                .PersistKeysToDbContext<PersistenceContext>();
+        }
 
         services.AddScoped<IProductoRepository, ProductoRepository>();
         services.AddScoped<ICategoriaRepository, CategoriaRepository>();

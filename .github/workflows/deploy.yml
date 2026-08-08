@@ -1,0 +1,249 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP || 'gestor-inventario-rg' }}
+  AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'eastus2' }}
+  AZURE_CONTAINERAPPS_ENVIRONMENT: ${{ vars.AZURE_CONTAINERAPPS_ENVIRONMENT || 'gestor-inventario-env' }}
+  AZURE_CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP || 'gestor-inventario-api' }}
+  BACKEND_IMAGE: ghcr.io/simonp46/agavaldemo-backend
+
+jobs:
+  database:
+    name: Deploy Azure SQL
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout verified revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Prepare Azure SQL scripts
+        shell: bash
+        run: |
+          mkdir .azure-sql
+          for script in \
+            database/scripts/002-create-tables.sql \
+            database/scripts/003-seed.sql \
+            database/scripts/004-validation.sql \
+            database/scripts/005-create-auth-tables.sql \
+            database/scripts/006-auth-seed.sql \
+            database/scripts/007-auth-stored-procedures.sql \
+            database/scripts/008-auth-validation.sql \
+            database/scripts/009-create-data-protection-table.sql; do
+            cat "$script" >> .azure-sql/deploy.sql
+            printf '\n' >> .azure-sql/deploy.sql
+          done
+
+      - name: Sign in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Apply schema, seed and stored procedures
+        uses: azure/sql-action@v2.3
+        with:
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          path: ./.azure-sql/deploy.sql
+
+  backend:
+    name: Deploy Backend Container
+    needs: database
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      origin: ${{ steps.backend-url.outputs.origin }}
+
+    steps:
+      - name: Checkout verified revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and publish Backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:${{ env.DEPLOY_SHA }}
+            ${{ env.BACKEND_IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ env.DEPLOY_SHA }}
+
+      - name: Sign in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Container Apps CLI
+        run: az extension add --name containerapp --upgrade
+
+      - name: Ensure Container Apps environment
+        shell: bash
+        run: |
+          az provider register --namespace Microsoft.App --wait
+          az provider register --namespace Microsoft.OperationalInsights --wait
+
+          if ! az group show --name "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+            az group create --name "$AZURE_RESOURCE_GROUP" --location "$AZURE_LOCATION"
+          fi
+
+          if ! az containerapp env show \
+            --name "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+            --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+            az containerapp env create \
+              --name "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --location "$AZURE_LOCATION"
+          fi
+
+      - name: Create or update Backend
+        shell: bash
+        env:
+          AZURE_SQL_CONNECTION_STRING: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        run: |
+          IMAGE="$BACKEND_IMAGE:$DEPLOY_SHA"
+
+          if az containerapp show \
+            --name "$AZURE_CONTAINER_APP" \
+            --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+            az containerapp registry set \
+              --name "$AZURE_CONTAINER_APP" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --server ghcr.io \
+              --username simonp46 \
+              --password "$GHCR_PULL_TOKEN"
+
+            az containerapp secret set \
+              --name "$AZURE_CONTAINER_APP" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --secrets sql-connection="$AZURE_SQL_CONNECTION_STRING"
+
+            az containerapp update \
+              --name "$AZURE_CONTAINER_APP" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --image "$IMAGE" \
+              --min-replicas 0 \
+              --max-replicas 1 \
+              --set-env-vars \
+                ASPNETCORE_ENVIRONMENT=Production \
+                ASPNETCORE_HTTP_PORTS=8080 \
+                ASPNETCORE_FORWARDEDHEADERS_ENABLED=true \
+                ConnectionStrings__GestorInventarioDb=secretref:sql-connection
+          else
+            az containerapp create \
+              --name "$AZURE_CONTAINER_APP" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --environment "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              --image "$IMAGE" \
+              --ingress external \
+              --target-port 8080 \
+              --transport http \
+              --min-replicas 0 \
+              --max-replicas 1 \
+              --cpu 0.5 \
+              --memory 1.0Gi \
+              --registry-server ghcr.io \
+              --registry-username simonp46 \
+              --registry-password "$GHCR_PULL_TOKEN" \
+              --secrets sql-connection="$AZURE_SQL_CONNECTION_STRING" \
+              --env-vars \
+                ASPNETCORE_ENVIRONMENT=Production \
+                ASPNETCORE_HTTP_PORTS=8080 \
+                ASPNETCORE_FORWARDEDHEADERS_ENABLED=true \
+                ConnectionStrings__GestorInventarioDb=secretref:sql-connection
+          fi
+
+      - name: Resolve Backend URL
+        id: backend-url
+        shell: bash
+        run: |
+          FQDN=$(az containerapp show \
+            --name "$AZURE_CONTAINER_APP" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+          curl --fail --retry 12 --retry-all-errors --retry-delay 10 "https://$FQDN/health"
+          echo "origin=https://$FQDN" >> "$GITHUB_OUTPUT"
+
+  frontend:
+    name: Deploy Frontend Container
+    needs: backend
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      BACKEND_ORIGIN: ${{ needs.backend.outputs.origin }}
+
+    steps:
+      - name: Checkout verified revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel project configuration
+        run: vercel pull --yes --environment=production --cwd=frontend --token="$VERCEL_TOKEN"
+
+      - name: Deploy Frontend to Vercel
+        id: deploy
+        shell: bash
+        run: |
+          URL=$(vercel deploy \
+            --prod \
+            --yes \
+            --cwd=frontend \
+            --token="$VERCEL_TOKEN" \
+            --env BACKEND_ORIGIN="$BACKEND_ORIGIN")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Verify public health endpoint
+        shell: bash
+        run: |
+          curl --fail --retry 10 --retry-all-errors --retry-delay 10 "${{ steps.deploy.outputs.url }}/health"
+          STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            "${{ steps.deploy.outputs.url }}/api/auth/sesion")
+          test "$STATUS" = "401"
