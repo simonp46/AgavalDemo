@@ -7,7 +7,7 @@
       <span>Stock actual: {{ producto.stock }}</span>
     </p>
 
-    <div class="ajustar-stock__fields">
+    <section class="ajustar-stock__fields" aria-label="Datos del ajuste">
       <mat-form-field appearance="outline">
         <mat-label>Tipo</mat-label>
         <mat-select formControlName="tipo">
@@ -36,7 +36,7 @@
           <mat-error>La cantidad está fuera del rango permitido.</mat-error>
         }
       </mat-form-field>
-    </div>
+    </section>
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
