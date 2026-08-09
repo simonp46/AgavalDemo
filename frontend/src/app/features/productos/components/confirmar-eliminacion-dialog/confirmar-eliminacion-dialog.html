@@ -1,6 +1,9 @@
-<div class="confirmar-eliminacion">
+<section
+  class="confirmar-eliminacion"
+  aria-labelledby="confirmar-eliminacion-title"
+>
   <span class="confirmar-eliminacion__eyebrow">Acción irreversible</span>
-  <h2 mat-dialog-title>Eliminar producto</h2>
+  <h2 id="confirmar-eliminacion-title" mat-dialog-title>Eliminar producto</h2>
   <mat-dialog-content>
     <p class="confirmar-eliminacion__message">
       ¿Deseas eliminar <strong>{{ producto.nombre }}</strong>? El registro dejará de
@@ -13,4 +16,4 @@
       Eliminar
     </button>
   </mat-dialog-actions>
-</div>
+</section>

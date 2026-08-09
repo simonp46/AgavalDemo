@@ -64,7 +64,7 @@ export class ProductoForm {
   readonly producto = input<ProductoResponse | null>(null);
   readonly categorias = input.required<readonly CategoriaResponse[]>();
   readonly guardando = input(false);
-  readonly erroresServidor = input<ProblemDetails['errors']>(undefined);
+  readonly erroresServidor = input<ProblemDetails['errors'] | null>(undefined);
   readonly guardar = output<CrearProductoRequest>();
   readonly cancelar = output<void>();
 
@@ -176,11 +176,11 @@ export class ProductoForm {
   }
 
   private aplicarErroresServidor(
-    errors: ProblemDetails['errors'],
+    errors: ProblemDetails['errors'] | null,
   ): void {
     this.limpiarErroresServidor();
 
-    if (errors === undefined) {
+    if (errors === undefined || errors === null) {
       return;
     }
 

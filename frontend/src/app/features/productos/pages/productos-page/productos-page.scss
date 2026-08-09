@@ -100,6 +100,10 @@
     background: rgb(255 253 247 / 55%);
   }
 
+  &__loading-state {
+    margin: 0;
+  }
+
   &__empty h3,
   &__empty p {
     margin: 0;

@@ -13,14 +13,14 @@
       <span class="app-shell__divider" aria-hidden="true"></span>
       <h1 class="app-shell__title">{{ title() }}</h1>
       @if (auth.usuario(); as usuario) {
-        <div class="app-shell__session">
+        <nav class="app-shell__session" aria-label="Sesion de usuario">
           <span class="app-shell__user">
             {{ usuario.nombre }} · {{ usuario.area }}
           </span>
           <button type="button" mat-button (click)="cerrarSesion()">
             Cerrar sesión
           </button>
-        </div>
+        </nav>
       } @else {
         <span class="app-shell__environment">Portal de inventario</span>
       }
